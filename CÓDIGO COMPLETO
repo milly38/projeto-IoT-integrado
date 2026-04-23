@@ -1,0 +1,99 @@
+--C++
+
+#include <ESP8266WiFi.h>
+#include <DHT.h>
+#include <ArduinoJson.h>
+#include <ESP8266HTTPClient.h>
+
+#define DHT_PIN D4
+#define DHT_TYPE DHT11
+
+#define LED_R D5
+#define LED_G D6
+#define LED_B D7
+#define BUZZER D8
+
+const char* ssid = "SEU_WIFI";
+const char* senha = "SUA_SENHA";
+const char* api_url = "http://SEU_IP:5000/api/v1/readings";
+
+DHT dht(DHT_PIN, DHT_TYPE);
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  dht.begin();
+
+  WiFi.begin(ssid, senha);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi conectado!");
+}
+
+void loop() {
+
+  float temp = dht.readTemperature();
+  float umid = dht.readHumidity();
+
+  if (isnan(temp) || isnan(umid)) {
+    Serial.println("Erro no sensor");
+    return;
+  }
+
+  String status;
+
+  if (temp > 40) {
+    status = "CRITICO";
+    analogWrite(LED_R, 255);
+    analogWrite(LED_G, 0);
+    analogWrite(LED_B, 0);
+    tone(BUZZER, 2000, 500);
+  } else if (temp > 30) {
+    status = "ALERTA";
+    analogWrite(LED_R, 255);
+    analogWrite(LED_G, 165);
+    analogWrite(LED_B, 0);
+    tone(BUZZER, 1000, 200);
+  } else {
+    status = "NORMAL";
+    analogWrite(LED_R, 0);
+    analogWrite(LED_G, 255);
+    analogWrite(LED_B, 0);
+  }
+
+  Serial.println("Enviando dados...");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    WiFiClient client;
+
+    http.begin(client, api_url);
+    http.addHeader("Content-Type", "application/json");
+
+    StaticJsonDocument<200> doc;
+    doc["device_id"] = "ESP8266-01";
+    doc["temperatura"] = temp;
+    doc["umidade"] = umid;
+    doc["status"] = status;
+
+    String json;
+    serializeJson(doc, json);
+
+    int httpCode = http.POST(json);
+
+    Serial.print("Resposta: ");
+    Serial.println(httpCode);
+
+    http.end();
+  }
+
+  delay(5000);
+}
