@@ -1,0 +1,36 @@
+--C#
+
+#define LED_R D5
+#define LED_G D6
+#define LED_B D7
+#define BUZZER D8
+
+void setup() {
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+}
+
+void loop() {
+
+  // 🟢 NORMAL
+  analogWrite(LED_R, 0);
+  analogWrite(LED_G, 255);
+  analogWrite(LED_B, 0);
+  delay(1500);
+
+  // 🟠 ALERTA
+  analogWrite(LED_R, 255);
+  analogWrite(LED_G, 165);
+  analogWrite(LED_B, 0);
+  tone(BUZZER, 1000, 300);
+  delay(1500);
+
+  // 🔴 CRÍTICO
+  analogWrite(LED_R, 255);
+  analogWrite(LED_G, 0);
+  analogWrite(LED_B, 0);
+  tone(BUZZER, 2000, 700);
+  delay(1500);
+}
